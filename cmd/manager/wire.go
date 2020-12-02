@@ -29,7 +29,7 @@ import (
 
 func InitializeMarketplaceController() (*managers.ControllerMain, error) {
 	panic(wire.Build(
-		config.ProvideInfrastructureAwareConfig,
+		config.ProvideConfig,
 		controller.ControllerSet,
 		controller.ProvideControllerFlagSet,
 		controller.SchemeDefinitions,

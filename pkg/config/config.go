@@ -20,10 +20,12 @@ import (
 	"github.com/caarlos0/env/v6"
 	"k8s.io/client-go/discovery"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var global *OperatorConfig
 var globalMutex = sync.RWMutex{}
+var log = logf.Log.WithName("operator_config")
 
 // OperatorConfig is the configuration for the operator
 type OperatorConfig struct {
@@ -85,7 +87,7 @@ func ProvideConfig() (OperatorConfig, error) {
 
 var GetConfig = ProvideConfig
 
-// ProvideInfrastructureAwareConfig gets the config from env vars
+// ProvideInfrastructureAwareConfig collects Kuberentes, Openshift and env vars information
 func ProvideInfrastructureAwareConfig(c client.Client, dc *discovery.DiscoveryClient) (OperatorConfig, error) {
 	cfg := OperatorConfig{}
 	inf, err := LoadInfrastructure(c, dc)
