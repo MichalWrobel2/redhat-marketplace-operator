@@ -16,6 +16,7 @@ package marketplaceconfig
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -36,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -79,16 +81,26 @@ func FlagSet() *pflag.FlagSet {
 func Add(
 	mgr manager.Manager,
 	ccprovider ClientCommandRunnerProvider,
+	cfg config.OperatorConfig,
+	k8s kubernetes.Interface,
 ) error {
-	return add(mgr, newReconciler(mgr, ccprovider))
+	return add(mgr, newReconciler(mgr, ccprovider, cfg, k8s))
 }
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(
 	mgr manager.Manager,
 	ccprovider ClientCommandRunnerProvider,
+	cfg config.OperatorConfig,
+	k8s kubernetes.Interface,
 ) reconcile.Reconciler {
-	return &ReconcileMarketplaceConfig{client: mgr.GetClient(), scheme: mgr.GetScheme(), ccprovider: ccprovider}
+	return &ReconcileMarketplaceConfig{
+		client:     mgr.GetClient(),
+		scheme:     mgr.GetScheme(),
+		ccprovider: ccprovider,
+		config:     cfg,
+		k8s:        k8s,
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -153,6 +165,8 @@ type ReconcileMarketplaceConfig struct {
 	client     client.Client
 	scheme     *runtime.Scheme
 	ccprovider ClientCommandRunnerProvider
+	config     config.OperatorConfig
+	k8s        kubernetes.Interface
 }
 
 // Reconcile reads that state of the cluster for a MarketplaceConfig object and makes changes based on the state read
@@ -165,6 +179,11 @@ func (r *ReconcileMarketplaceConfig) Reconcile(request reconcile.Request) (recon
 
 	cc := r.ccprovider.NewCommandRunner(r.client, r.scheme, reqLogger)
 
+	fmt.Printf("\n\n\n %+v %+v \n\n\n", r.config.Infrastructure.Openshift, r.config.Infrastructure.Kubernetes)
+	if r.config.Infrastructure.Openshift == nil {
+		reqLogger.Info("Unable to detect Openshift")
+		setSecurityContexts(r.k8s, request.Namespace)
+	}
 	// Fetch the MarketplaceConfig instance
 	marketplaceConfig := &marketplacev1alpha1.MarketplaceConfig{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, marketplaceConfig)
@@ -674,4 +693,24 @@ func (r *ReconcileMarketplaceConfig) createCatalogSource(request reconcile.Reque
 
 	}
 	return false, nil
+}
+
+func setSecurityContexts(k8s kubernetes.Interface, namespace string) error {
+	deploymentsToUpdateNames := []string{
+		"rhm-watch-keeper",
+	}
+	deploymentList, err := k8s.ExtensionsV1beta1().Deployments(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, d := range deploymentList.Items {
+		for _, targetDeployName := range deploymentsToUpdateNames {
+			if d.GetName() == targetDeployName {
+				_, err = k8s.ExtensionsV1beta1().Deployments(namespace).Update(context.TODO(), &d, metav1.UpdateOptions{})
+			}
+		}
+	}
+
+	return nil
 }

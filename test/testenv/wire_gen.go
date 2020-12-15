@@ -13,6 +13,7 @@ import (
 	"github.com/redhat-marketplace/redhat-marketplace-operator/pkg/utils/reconcileutils"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -35,13 +36,17 @@ func InitializeScheme(cfg *rest.Config) (*runtime.Scheme, error) {
 
 func InitializeMainCtrl(cfg *rest.Config) (*managers.ControllerMain, error) {
 	defaultCommandRunnerProvider := reconcileutils.ProvideDefaultCommandRunnerProvider()
-	marketplaceController := controller.ProvideMarketplaceController(defaultCommandRunnerProvider)
-	meterbaseController := controller.ProvideMeterbaseController(defaultCommandRunnerProvider)
-	meterDefinitionController := controller.ProvideMeterDefinitionController(defaultCommandRunnerProvider)
 	operatorConfig, err := config.ProvideConfig()
 	if err != nil {
 		return nil, err
 	}
+	clientset, err := kubernetes.NewForConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
+	marketplaceController := controller.ProvideMarketplaceController(defaultCommandRunnerProvider, operatorConfig, clientset)
+	meterbaseController := controller.ProvideMeterbaseController(defaultCommandRunnerProvider)
+	meterDefinitionController := controller.ProvideMeterDefinitionController(defaultCommandRunnerProvider)
 	razeeDeployController := controller.ProvideRazeeDeployController(operatorConfig)
 	olmSubscriptionController := controller.ProvideOlmSubscriptionController()
 	meterReportController := controller.ProvideMeterReportController(defaultCommandRunnerProvider, operatorConfig)

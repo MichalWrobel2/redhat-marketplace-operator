@@ -15,8 +15,10 @@
 package controller
 
 import (
+	"github.com/redhat-marketplace/redhat-marketplace-operator/pkg/config"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/pkg/controller/marketplaceconfig"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/pkg/utils/reconcileutils"
+	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -26,11 +28,13 @@ type MarketplaceController struct {
 
 func ProvideMarketplaceController(
 	commandRunner reconcileutils.ClientCommandRunnerProvider,
+	cfg config.OperatorConfig,
+	k8s kubernetes.Interface,
 ) *MarketplaceController {
 	return &MarketplaceController{
 		baseDefinition: &baseDefinition{
 			AddFunc: func(mgr manager.Manager) error {
-				return marketplaceconfig.Add(mgr, commandRunner)
+				return marketplaceconfig.Add(mgr, commandRunner, cfg, k8s)
 			},
 			FlagSetFunc: marketplaceconfig.FlagSet,
 		},
