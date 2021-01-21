@@ -33,6 +33,7 @@ type OperatorConfig struct {
 	DeployedNamespace string `env:"POD_NAMESPACE"`
 	ReportController  ReportControllerConfig
 	RelatedImages
+	OSRelatedImages
 	Features
 	Marketplace
 	Infrastructure
@@ -50,6 +51,21 @@ type RelatedImages struct {
 	ConfigMapReloader           string `env:"RELATED_IMAGE_CONFIGMAP_RELOADER" envDefault:"registry.redhat.io/openshift4/ose-configmap-reloader:latest"`
 	PrometheusConfigMapReloader string `env:"RELATED_IMAGE_PROMETHEUS_CONFIGMAP_RELOADER" envDefault:"registry.redhat.io/openshift4/ose-prometheus-config-reloader:latest"`
 	OAuthProxy                  string `env:"RELATED_IMAGE_OAUTH_PROXY" envDefault:"registry.redhat.io/openshift4/ose-oauth-proxy:latest"`
+	RemoteResourceS3            string `env:"RELATED_IMAGE_RHM_RRS3_DEPLOYMENT" envDefault:"quay.io/razee/remoteresources3:0.6.2"`
+	WatchKeeper                 string `env:"RELATED_IMAGE_RHM_WATCH_KEEPER_DEPLOYMENT" envDefault:"quay.io/razee/watch-keeper:0.6.6"`
+}
+
+// OSRelatedImages stores open source related images for the operator
+type OSRelatedImages struct {
+	Reporter                    string `env:"RELATED_IMAGE_REPORTER" envDefault:"reporter:latest"`
+	KubeRbacProxy               string `env:"RELATED_IMAGE_OS_KUBE_RBAC_PROXY" envDefault:"quay.io/coreos/kube-rbac-proxy:v0.5.0"`
+	MetricState                 string `env:"RELATED_IMAGE_METRIC_STATE" envDefault:"metric-state:latest"`
+	AuthChecker                 string `env:"RELATED_IMAGE_AUTHCHECK" envDefault:"authcheck:latest"`
+	Prometheus                  string `env:"RELATED_IMAGE_OS_PROMETHEUS" envDefault:"quay.io/prometheus/prometheus:v2.24.0"`
+	PrometheusOperator          string `env:"RELATED_IMAGE_OS_PROMETHEUS_OPERATOR" envDefault:"quay.io/coreos/prometheus-operator:v0.42.1"`
+	ConfigMapReloader           string `env:"RELATED_IMAGE_OS_CONFIGMAP_RELOADER" envDefault:"quay.io/coreos/configmap-reload:v0.0.1"`
+	PrometheusConfigMapReloader string `env:"RELATED_IMAGE_OS_PROMETHEUS_CONFIGMAP_RELOADER" envDefault:"quay.io/coreos/prometheus-config-reloader:v0.42.1"`
+	OAuthProxy                  string `env:"RELATED_IMAGE_OS_OAUTH_PROXY" envDefault:"quay.io/oauth2-proxy/oauth2-proxy:v6.1.1"`
 	RemoteResourceS3            string `env:"RELATED_IMAGE_RHM_RRS3_DEPLOYMENT" envDefault:"quay.io/razee/remoteresources3:0.6.2"`
 	WatchKeeper                 string `env:"RELATED_IMAGE_RHM_WATCH_KEEPER_DEPLOYMENT" envDefault:"quay.io/razee/watch-keeper:0.6.6"`
 }
@@ -115,6 +131,10 @@ func ProvideInfrastructureAwareConfig(c client.Client, dc *discovery.DiscoveryCl
 	err = env.Parse(&cfg)
 	if err != nil {
 		return cfg, err
+	}
+
+	if !inf.HasOpenshift() {
+		cfg.RelatedImages = RelatedImages(cfg.OSRelatedImages)
 	}
 
 	return cfg, nil
