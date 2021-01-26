@@ -30,6 +30,7 @@ import (
 	marketplacev1alpha1 "github.com/redhat-marketplace/redhat-marketplace-operator/v2/apis/marketplace/v1alpha1"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/config"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils"
+	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils/certs"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -365,7 +366,20 @@ func (f *Factory) NewPrometheusOperatorService() (*corev1.Service, error) {
 }
 
 func (f *Factory) NewPrometheusOperatorCertsCABundle() (*corev1.ConfigMap, error) {
-	return f.NewConfigMap(MustAssetReader(PrometheusOperatorCertsCABundle))
+	c, err := f.NewConfigMap(MustAssetReader(PrometheusOperatorCertsCABundle))
+	if err != nil {
+		return nil, err
+	}
+	if !f.operatorConfig.HasOpenshift() {
+		cert, _, err := certs.GenerateCertificate()
+		if err != nil {
+			return nil, err
+		}
+		c.Data = map[string]string{
+			"service-ca.crt": cert,
+		}
+	}
+	return c, nil
 }
 
 func (f *Factory) PrometheusKubeletServingCABundle(data string) (*v1.ConfigMap, error) {
@@ -426,6 +440,15 @@ func (f *Factory) PrometheusServingCertsCABundle() (*v1.ConfigMap, error) {
 	c, err := f.NewConfigMap(MustAssetReader(PrometheusServingCertsCABundle))
 	if err != nil {
 		return nil, err
+	}
+	if !f.operatorConfig.HasOpenshift() {
+		cert, _, err := certs.GenerateCertificate()
+		if err != nil {
+			return nil, err
+		}
+		c.Data = map[string]string{
+			"service-ca.crt": cert,
+		}
 	}
 
 	c.Namespace = f.namespace
