@@ -370,7 +370,7 @@ func (f *Factory) NewPrometheusOperatorCertsCABundle() (*corev1.ConfigMap, error
 	if err != nil {
 		return nil, err
 	}
-	if !f.operatorConfig.HasOpenshift() {
+	if !f.operatorConfig.Infrastructure.HasOpenshift() {
 		cert, _, err := certs.GenerateCertificate()
 		if err != nil {
 			return nil, err
@@ -441,7 +441,7 @@ func (f *Factory) PrometheusServingCertsCABundle() (*v1.ConfigMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	if !f.operatorConfig.HasOpenshift() {
+	if !f.operatorConfig.Infrastructure.HasOpenshift() {
 		cert, _, err := certs.GenerateCertificate()
 		if err != nil {
 			return nil, err
