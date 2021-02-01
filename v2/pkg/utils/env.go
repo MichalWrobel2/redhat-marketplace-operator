@@ -76,6 +76,7 @@ const (
 	RHMPullSecretKey      = "PULL_SECRET"
 	RHMPullSecretStatus   = "marketplace.redhat.com/rhm-operator-secret-status"
 	RHMPullSecretMessage  = "marketplace.redhat.com/rhm-operator-secret-message"
+	RHMPCASecretName      = "rhm-ca-secret"
 
 	RazeeWatchResource    = "razee/watch-resource"
 	RazeeWatchLevelLite   = "lite"

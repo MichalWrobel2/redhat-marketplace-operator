@@ -20,6 +20,7 @@ import (
 
 	"github.com/caarlos0/env/v6"
 	rhmclient "github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/client"
+	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils/certs"
 	"k8s.io/client-go/discovery"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
@@ -37,6 +38,7 @@ type OperatorConfig struct {
 	Marketplace
 	*Infrastructure
 	OLMInformation
+	CertificateAuthority
 }
 
 // RelatedImages stores relatedimages for the operator
@@ -77,6 +79,11 @@ type OLMInformation struct {
 	OwnerKind      string `env:"OLM_OWNER_KIND"`
 }
 
+type CertificateAuthority struct {
+	PublicKey  []byte
+	PrivateKey []byte
+}
+
 func reset() {
 	globalMutex.Lock()
 	defer globalMutex.Unlock()
@@ -96,6 +103,16 @@ func ProvideConfig() (OperatorConfig, error) {
 			return cfg, err
 		}
 
+		cert, key, err := certs.CreateCertificateAuthority()
+		if err != nil {
+			return cfg, err
+		}
+
+		cfg.CertificateAuthority = CertificateAuthority{
+			PublicKey:  cert,
+			PrivateKey: key,
+		}
+
 		cfg.Infrastructure = &Infrastructure{}
 		global = &cfg
 	}
@@ -113,6 +130,16 @@ func ProvideInfrastructureAwareConfig(
 
 	if err != nil {
 		return cfg, err
+	}
+
+	cert, key, err := certs.CreateCertificateAuthority()
+	if err != nil {
+		return cfg, err
+	}
+
+	cfg.CertificateAuthority = CertificateAuthority{
+		PublicKey:  cert,
+		PrivateKey: key,
 	}
 
 	cfg.Infrastructure = inf

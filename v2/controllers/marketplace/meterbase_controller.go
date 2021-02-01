@@ -811,7 +811,7 @@ func (r *MeterBaseReconciler) reconcilePrometheus(
 	dataSecret := &corev1.Secret{}
 	kubeletCertsCM := &corev1.ConfigMap{}
 
-	return []ClientAction{
+	actions := []ClientAction{
 		manifests.CreateIfNotExistsFactoryItem(
 			&corev1.ConfigMap{},
 			func() (runtime.Object, error) {
@@ -933,6 +933,17 @@ func (r *MeterBaseReconciler) reconcilePrometheus(
 				},
 				))),
 	}
+
+	if !r.factory.OperatorConfig().Infrastructure.HasOpenshift() {
+		actions = append(actions, manifests.CreateIfNotExistsFactoryItem(
+			&corev1.Secret{},
+			func() (runtime.Object, error) {
+				return factory.TlsSecret("prometheus-operator-tls")
+			},
+		))
+	}
+
+	return actions
 }
 
 func (r *MeterBaseReconciler) recyclePrometheusPods(

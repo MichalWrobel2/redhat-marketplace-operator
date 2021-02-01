@@ -30,6 +30,7 @@ import (
 	marketplacev1alpha1 "github.com/redhat-marketplace/redhat-marketplace-operator/v2/apis/marketplace/v1alpha1"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/config"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils"
+	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils/certs"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -37,6 +38,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -431,6 +433,47 @@ func (f *Factory) PrometheusServingCertsCABundle() (*v1.ConfigMap, error) {
 	c.Namespace = f.namespace
 
 	return c, nil
+}
+
+func (f *Factory) OperatorConfig() *config.OperatorConfig {
+	return f.operatorConfig
+}
+
+func (f *Factory) CertificateAuthoritySecret() (*v1.Secret, error) {
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: f.namespace,
+			Name:      utils.RHMPCASecretName,
+		},
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"ca.crt": f.operatorConfig.CertificateAuthority.PublicKey,
+			"ca.key": f.operatorConfig.CertificateAuthority.PrivateKey,
+		},
+	}, nil
+}
+
+func (f *Factory) TlsSecret(name string) (*v1.Secret, error) {
+	cert, key, err := certs.CreateCertFromCA(
+		types.NamespacedName{Namespace: f.namespace, Name: name},
+		f.operatorConfig.CertificateAuthority.PublicKey,
+		f.operatorConfig.CertificateAuthority.PrivateKey,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: f.namespace,
+			Name:      name,
+		},
+		Type: corev1.SecretTypeTLS,
+		Data: map[string][]byte{
+			"tls.crt": []byte(cert),
+			"tls.key": []byte(key),
+		},
+	}, nil
 }
 
 func (f *Factory) ReporterJob(

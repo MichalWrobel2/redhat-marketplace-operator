@@ -16,6 +16,7 @@ package marketplace
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -135,6 +136,31 @@ func (r *MarketplaceConfigReconciler) Reconcile(request reconcile.Request) (reco
 		}
 
 		return reconcile.Result{Requeue: true}, nil
+	}
+
+	if !r.cfg.Infrastructure.HasOpenshift() {
+		secret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: request.Namespace,
+				Name:      utils.RHMPCASecretName,
+			},
+		}
+		err := r.Client.Get(context.TODO(), request.NamespacedName, secret)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				reqLogger.Info(
+					fmt.Sprintf("Secret %s not found", utils.RHMPCASecretName),
+					utils.RHMPCASecretName,
+				)
+				secret.Data["tls.crt"] = r.cfg.CertificateAuthority.PublicKey
+				secret.Data["tls.key"] = r.cfg.CertificateAuthority.PrivateKey
+				err = r.Client.Create(context.TODO(), secret)
+
+				return reconcile.Result{}, err
+			}
+			reqLogger.Error(err, "Failed to get manager secret")
+			return reconcile.Result{}, err
+		}
 	}
 
 	newRazeeCrd := utils.BuildRazeeCr(marketplaceConfig.Namespace, marketplaceConfig.Spec.ClusterUUID, marketplaceConfig.Spec.DeploySecretName, marketplaceConfig.Spec.Features)
