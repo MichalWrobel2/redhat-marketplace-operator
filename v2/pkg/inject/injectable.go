@@ -20,6 +20,7 @@ import (
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/managers"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/manifests"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/runnables"
+	utils "github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils/cert"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils/patch"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/utils/reconcileutils"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -121,6 +122,10 @@ type Factory interface {
 type ClientCommandInjector struct {
 	Fields        *managers.ControllerFields
 	CommandRunner reconcileutils.ClientCommandRunner
+}
+
+type CertIssuer interface {
+	InjectCertIssuer(*utils.CertIssuer) error
 }
 
 func (a *ClientCommandInjector) SetCustomFields(i interface{}) error {

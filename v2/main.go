@@ -35,9 +35,12 @@ import (
 	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 
+	marketplaceredhatcomv1alpha1 "github.com/redhat-marketplace/redhat-marketplace-operator/v2/apis/marketplace.redhat.com/v1alpha1"
+	marketplaceredhatcomv1beta1 "github.com/redhat-marketplace/redhat-marketplace-operator/v2/apis/marketplace.redhat.com/v1beta1"
 	marketplacev1alpha1 "github.com/redhat-marketplace/redhat-marketplace-operator/v2/apis/marketplace/v1alpha1"
 	marketplacev1beta1 "github.com/redhat-marketplace/redhat-marketplace-operator/v2/apis/marketplace/v1beta1"
 	controllers "github.com/redhat-marketplace/redhat-marketplace-operator/v2/controllers/marketplace"
+	marketplaceredhatcomcontrollers "github.com/redhat-marketplace/redhat-marketplace-operator/v2/controllers/marketplace.redhat.com"
 	"github.com/redhat-marketplace/redhat-marketplace-operator/v2/pkg/inject"
 	// +kubebuilder:scaffold:imports
 )
@@ -63,6 +66,8 @@ func init() {
 	utilruntime.Must(olmv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 	utilruntime.Must(marketplacev1beta1.AddToScheme(scheme))
+	utilruntime.Must(marketplaceredhatcomv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(marketplaceredhatcomv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -213,6 +218,30 @@ func main() {
 
 	if err = (&marketplacev1beta1.MeterDefinition{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MeterDefinition")
+		os.Exit(1)
+	}
+	if err = (&marketplaceredhatcomcontrollers.CertIssuerReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("marketplace.redhat.com").WithName("CertIssuer"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CertIssuer")
+		os.Exit(1)
+	}
+	if err = (&marketplaceredhatcomcontrollers.CertIssuerReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("marketplace.redhat.com").WithName("CertIssuer"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CertIssuer")
+		os.Exit(1)
+	}
+	if err = (&marketplaceredhatcomcontrollers.CertIssuerReconciler{
+		Client: mgr.GetClient(),
+		Log:    ctrl.Log.WithName("controllers").WithName("marketplace.redhat.com").WithName("CertIssuer"),
+		Scheme: mgr.GetScheme(),
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "CertIssuer")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder
